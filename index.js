@@ -32,6 +32,9 @@ class moduleInstance extends InstanceBase {
 
 		this.socket = undefined
 
+		this.cmdPipe = [];
+		this.lastReturnedCommand = undefined;
+
 		this.pollTimer = undefined
 
 		this.DATA = {}
@@ -140,6 +143,8 @@ class moduleInstance extends InstanceBase {
 			})
 
 			this.socket.on('connect', () => {
+				this.cmdPipe = [];
+
 				this.initPolling()
 
 				this.updateStatus(InstanceStatus.Ok)
@@ -148,43 +153,69 @@ class moduleInstance extends InstanceBase {
 			this.socket.on('data', (receivebuffer) => {
 				pipeline += receivebuffer.toString('utf8')
 
-				//this whole area needs work because I think ACKs are sent on good response as well as a request for data
-
-				if (pipeline.includes(this.CONTROL_ACK)) { // ACKs are sent when a command is received, no processing is needed
-					pipeline = '';
-				}
-				else if (pipeline.includes(this.CONTROL_NAK)) {// NAKs are sent on error, let's see what error we got
-					this.processError(pipeline)
+				if (pipeline.includes(this.CONTROL_ACK)) { // ACKs are sent when a command is received, no processing is needed, we should have one command to one ACK
 					pipeline = '';
 				}
 				else if (pipeline.includes(this.CONTROL_END)) { // Every command ends with CR or an ACK if nothing needed
 					let pipeline_responses = pipeline.split(this.CONTROL_END);
 					for (let i = 0; i < pipeline_responses.length; i++) {
 						if (pipeline_responses[i] !== '') {
-							this.processResponse(pipeline_responses[i])
+							if (pipeline_responses[i].includes(this.CONTROL_NAK)) {// NAKs are sent on error, let's see what error we got
+								this.processError(pipeline_responses[i])
+							}
+							else {
+								this.processResponse(pipeline_responses[i])
+							}
 						}
 					}
 					
 					pipeline = '';
 				}
+
+				this.lastReturnedCommand = this.cmdPipeNext()
 			})
 		}
 	}
 
+	cmdPipeNext() {
+		const return_cmd = this.cmdPipe.shift();
+
+		if(this.cmdPipeNext.length > 0) {
+			let command = this.cmdPipe[0];
+			this.lastReturnedCommand(command.cmd, command.handshake, command.params);
+		}
+
+		return return_cmd;
+	}
+
 	sendCommand(cmd, handshake, params) {
 		if (cmd !== undefined) {
-			if (this.socket !== undefined && this.socket.isConnected) {
-				this.socket.send(this.buildCommand(cmd, handshake, params))
-				.then((result) => {
-					//console.log('send result: ' + result);
-				})
-				.catch((error) => {
-					//console.log('send error: ' + error);
-				});
-			} else {
-				this.log('error', 'Network error: Connection to Device not opened.')
-				clearInterval(this.pollTimer);
-			}
+			this.cmdPipe.push({
+				cmd: cmd,
+				handshake: handshake,
+				params: params
+			});
+
+			if(this.cmdPipe.length === 1) {
+				this.runCommand(cmd, handshake, params);
+			}			
+		}
+	}
+
+	runCommand(cmd, handshake, params) {
+		if (this.socket !== undefined && this.socket.isConnected) {
+			console.log('sending: ' + this.buildCommand(cmd, handshake, params));
+			this.socket.send(this.buildCommand(cmd, handshake, params))
+			.then((result) => {
+				//console.log('send result: ' + result);
+			})
+			.catch((error) => {
+				//console.log('send error: ' + error);
+			});
+		}
+		else {
+			this.log('error', 'Network error: Connection to Device not opened.')
+			clearInterval(this.pollTimer);
 		}
 	}
 
