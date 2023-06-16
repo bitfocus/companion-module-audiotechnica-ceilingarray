@@ -90,8 +90,8 @@ module.exports = {
 				if (model.variables.includes('input_gain_level')) {
 					let variableObj = {};
 					
-					for (let i = 0; i < this.DATA.input_gain_level.length; i++) {
-						let inputGainLevelObj = this.DATA.input_gain_level[i];
+					for (let i = 0; i < this.DATA.input_gain_levels.length; i++) {
+						let inputGainLevelObj = this.DATA.input_gain_levels[i];
 						let modelChannelObj = model.input_channels.find((CHANNEL) => CHANNEL.id == inputGainLevelObj.id);
 	
 						variableObj[`${modelChannelObj.variableId}_mic_gain`] = inputGainLevelObj.mic_gain_label;
@@ -197,22 +197,27 @@ module.exports = {
 				if (model.variables.includes('header_color')) {
 					let variableObj = {};
 					let headerColorObj = constants.header_colors.find((COLOR) => COLOR.id == this.DATA.header_color);
-					variableObj[`header_color`] = headerColorObj.label;
-					this.setVariableValues(variableObj);
+					if (headerColorObj) {
+						variableObj[`header_color`] = headerColorObj.label;
+						this.setVariableValues(variableObj);
+					}
 				}
 
 				if (model.variables.includes('camera_control')) {
-					let variableObj = {};
-					variableObj[`camera_control_status`] = (this.DATA.camera_control.status == true ? 'Speaking' : 'Not Speaking');
-					variableObj[`camera_control_channel`] = this.DATA.camera_control.channel_label;
-					variableObj[`camera_control_elevation_angle`] = this.DATA.camera_control.elevation_angle;
-					variableObj[`camera_control_rotation_angle`] = this.DATA.camera_control.rotation_angle;
-					variableObj[`camera_control_camera_number`] = this.DATA.camera_control.camera_number;
-					this.setVariableValues(variableObj);
+					if (this.DATA.camera_control) {
+						let variableObj = {};
+						variableObj[`camera_control_status`] = (this.DATA.camera_control.status == true ? 'Speaking' : 'Not Speaking');
+						variableObj[`camera_control_channel`] = this.DATA.camera_control.channel_label;
+						variableObj[`camera_control_elevation_angle`] = this.DATA.camera_control.elevation_angle;
+						variableObj[`camera_control_rotation_angle`] = this.DATA.camera_control.rotation_angle;
+						variableObj[`camera_control_camera_number`] = this.DATA.camera_control.camera_number;
+						this.setVariableValues(variableObj);
+					}
 				}
 			}
 		}
 		catch(error) {
+			console.log(error);
 			this.log('error', `Error checking variables: ${error.toString()}`)
 		}
 	}
