@@ -1,4 +1,4 @@
-const { InstanceStatus, TCPHelper } = require('@companion-module/base')
+const { InstanceStatus, TCPHelper, UDPHelper } = require('@companion-module/base')
 
 const dgram = require('dgram');
 
@@ -129,9 +129,9 @@ module.exports = {
 				self.cmdPipe = [];
 
 				self.getInformation();
-				self.initPolling()
+				self.initPolling();
 
-				self.updateStatus(InstanceStatus.Ok)
+				self.updateStatus(InstanceStatus.Ok);
 			})
 
 			self.socket.on('data', (receivebuffer) => {
@@ -164,14 +164,13 @@ module.exports = {
 	initUDP() {
 		let self = this;
 
-		if (self.config.status_change_listen) {
-			//if udp socket is already open, close it
-			if (self.udpSocket !== undefined) {
-				self.udpSocket.close();
-				delete self.udpSocket;
-			}
+		//if udp socket is already open, close it
+		if (self.udpSocket !== undefined) {
+			self.udpSocket.close();
+			delete self.udpSocket;
+		}
 
-			//now listen for status changes on udp port 17000
+		if (self.config.status_change_listen) {
 			self.udpSocket = dgram.createSocket('udp4');
 
 			self.udpSocket.on('error', (err) => {
@@ -182,17 +181,17 @@ module.exports = {
 			});
 
 			self.udpSocket.on('message', (msg, rinfo) => {
-				//self.log('debug', 'UDP message: ' + msg);
 				self.processUDPResponse(msg.toString());
 			});
 
 			self.udpSocket.on('listening', () => {
 				const address = self.udpSocket.address();
 				self.log('debug', `UDP listening for status change messages on ${address.address}:${address.port}`);
+				self.udpSocket.addMembership(self.config.multicast_address);
 			});
 
 			self.udpSocket.bind(parseInt(self.config.multicast_port), () => {
-				self.udpSocket.addMembership(self.config.multicast_address);
+				//self.udpSocket.addMembership(self.config.multicast_address);
 			});
 		}
 	},
@@ -505,11 +504,9 @@ module.exports = {
 		let model = self.MODELS.find((model) => model.id == self.config.model);
 
 		let inputChannel = '';
-		let outputChannel = '';
 
 		let model_inputChannelObj;
 
-		let found = false;
 
 		switch (category) {
 			case 'camera_control_notice':
@@ -529,7 +526,10 @@ module.exports = {
 				self.DATA.camera_control.rotation_angle = params[3].toString()
 				self.DATA.camera_control.camera_number = params[4].toString()
 				break;
+			case 'level_meter_notice':
+				break;
 			default:
+				console.log('no match: ' + category)
 				break;
 		}
 
