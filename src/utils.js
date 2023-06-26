@@ -1,4 +1,4 @@
-const { InstanceStatus, TCPHelper, UDPHelper } = require('@companion-module/base')
+const { InstanceStatus, TCPHelper } = require('@companion-module/base')
 
 const dgram = require('dgram');
 
