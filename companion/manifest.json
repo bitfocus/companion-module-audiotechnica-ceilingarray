@@ -3,7 +3,7 @@
 	"name": "audiotechnica-ceilingarray",
 	"shortname": "atnd-1061",
 	"description": "Controls Audio Technical Beamforming Ceiling Array Microphones",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"license": "MIT",
 	"repository": "git+https://github.com/bitfocus/companion-module-audiotechnica-ceilingarray.git",
 	"bugs": "https://github.com/bitfocus/companion-module-audiotechnica-ceilingarray/issues",
